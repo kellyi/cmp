@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  llp:
+    build: ./llp
+    working_dir: /usr/src
+    volumes:
+      - ./llp/src:/usr/src
