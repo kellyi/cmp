@@ -1,7 +1,9 @@
 global _start
 
 section .data
-test_string: db "pizza", 10
+test_string: db "pizza", 0
+test_char: db "c", 0
+newline: db 0xa, 0
 
 section .text
 
@@ -10,13 +12,13 @@ exit:
   syscall
 
 string_length:
+  xor rax, rax
 .loop:
-  cmp byte [rdi+r13], 0
+  cmp byte [rdi+rax], 0
   je .end
-  inc r13
+  inc rax
   jmp .loop
 .end:
-  mov rax, r13
   ret
 
 print_string:
@@ -28,27 +30,27 @@ print_string:
   syscall
   ret
 
+print_char:
+  jmp print_string
+
+print_newline:
+  mov rdi, newline
+  jmp print_char
+
 _start:
   mov rdi, test_string
   call print_string
+  call print_newline
+  mov rdi, test_char
+  call print_char
+  call print_newline
+  mov rdi, test_string
+  call print_string
+  call print_newline
+  call print_newline
+  call print_newline
   xor rdi, rdi
   call exit
-
-; string_length:
-;   xor rax, rax
-;   ret
-
-; print_string:
-;   xor rax, rax
-;   ret
-
-; print_char:
-;   xor rax, rax
-;   ret
-
-; print_newline:
-;   xor rax, rax
-;   ret
 
 ; print_uint:
 ;   xor rax, rax
