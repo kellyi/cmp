@@ -1,7 +1,7 @@
 global _start
 
 section .data
-test_string: db "hello!", 0
+test_string: db "pizza", 10
 
 section .text
 
@@ -19,12 +19,20 @@ string_length:
   mov rax, r13
   ret
 
+print_string:
+  mov rsi, rdi                  ; set up string to print
+  call string_length            ; get length of string to print
+  mov rdx, rax                  ; store string length
+  mov rax, 1                    ; set up the write syscall
+  mov rdi, 1
+  syscall
+  ret
+
 _start:
   mov rdi, test_string
-  call string_length
-  mov rdi, rax
+  call print_string
+  xor rdi, rdi
   call exit
-
 
 ; string_length:
 ;   xor rax, rax
