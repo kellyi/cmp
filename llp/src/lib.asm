@@ -1,84 +1,122 @@
 global _start
 
 section .data
-test_string: db "pizza", 0
+test_string: db "14", 0
 test_char: db "c", 0
 newline: db 0xa, 0
 
 section .text
 
-exit:
-  mov rax, 60                   ; set up the exit instruction
-  syscall
-
 string_length:
-  xor rax, rax
+  xor rax, rax                  ; set register to 0 to use as a counter
 .loop:
-  cmp byte [rdi+rax], 0
-  je .end
-  inc rax
-  jmp .loop
+  cmp byte [rdi+rax], 0         ; check whether anything remains to read
+  je .end                       ; if nothing left, jump to end
+  inc rax                       ; if another char is left, inc the counter
+  jmp .loop                     ; restart loop
 .end:
   ret
 
+print_char:
+  push rdi
+  mov rdi, rsp
+  call print_string
+  pop rdi
+  ret
+
+print_newline:
+  mov rdi, 10
+  jmp print_char
+
 print_string:
-  mov rsi, rdi                  ; set up string to print
-  call string_length            ; get length of string to print
-  mov rdx, rax                  ; store string length
-  mov rax, 1                    ; set up the write syscall
+  push rdi
+  call string_length
+  pop rsi
+  mov rdx, rax
+  mov rax, 1
   mov rdi, 1
   syscall
   ret
 
-print_char:
-  jmp print_string
+print_uint:
+  mov rax, rdi
+  mov rdi, rsp
+  push 0
+  sub rsp, 16
 
-print_newline:
-  mov rdi, newline
-  jmp print_char
+  dec rdi
+  mov r8, 10
+
+.loop:
+  xor rdx, rdx
+  div r8
+  or dl, 0x30
+  dec rdi
+  mov [rdi], dl
+  test rax, rax
+  jnz .loop
+
+  call print_string
+
+  add rsp, 24
+  ret
+
+print_int:
+  test rdi, rdi
+  jns print_uint
+  push rdi
+  mov rdi, '-'
+  call print_char
+  pop rdi
+  neg rdi
+  jmp print_uint
+
+parse_int:
+  mov al, byte [rdi]
+  cmp al, '-'
+  je .signed
+  jmp parse_uint
+.signed:
+  inc rdi
+  call parse_uint
+  neg rax
+  test rdx, rdx
+  jz .error
+
+  inc rdx
+  ret
+.error:
+  xor rax, rax
+  ret
+
+parse_uint:
+  mov r8, 10
+  xor rax, rax
+  xor rcx, rcx
+.loop:
+  movzx r9, byte [rdi+rcx]
+  cmp r9b, '0'
+  jb .end
+  cmp r9b, '9'
+  ja .end
+  xor rdx, rdx
+  mul r8
+  and r9b, 0x0f
+  add rax, r9
+  inc rcx
+  jmp .loop
+.end:
+  mov rdx, rcx
+  ret
 
 _start:
   mov rdi, test_string
-  call print_string
-  call print_newline
-  mov rdi, test_char
-  call print_char
+  call parse_uint
+  call print_uint
   call print_newline
   mov rdi, test_string
   call print_string
   call print_newline
-  call print_newline
-  call print_newline
-  xor rdi, rdi
-  call exit
-
-; print_uint:
-;   xor rax, rax
-;   ret
-
-; print_int:
-;   xor rax, rax
-;   ret
-
-; read_char:
-;   xor rax, rax
-;   ret
-
-; read_word:
-;   xor rax, rax
-;   ret
-
-; parse_uint:
-;   xor rax, rax
-;   ret
-
-; parse_int:
-;   xor rax, rax
-;   ret
-
-; string_equals:
-;   xor rax, rax
-;   ret
-
-; string_copy:
-;   ret
+  mov rdi, rax
+  mov rax, 60
+  syscall
