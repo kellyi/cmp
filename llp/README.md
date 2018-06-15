@@ -8,6 +8,12 @@ ld -o hello.out hello.o
 chmod u+x hello.out
 ```
 
+## Compile C & create executable
+
+```sh
+gcc -o hello.out -ansi -pedantic-errors -Wall -Werror hello.c
+```
+
 ## Disassemble
 
 ```sh
