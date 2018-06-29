@@ -15,7 +15,7 @@ void newline() {
   printf("\n");
 }
 
-void number(n) {
+void number(int n) {
   printf("%d", n);
 }
 
