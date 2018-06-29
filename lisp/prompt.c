@@ -1,7 +1,7 @@
 #include "mpc.h"
 #include <editline/readline.h>
 
-enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SXPR };
+enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SXPR, LVAL_QXPR };
 
 typedef struct lval {
   int type;
@@ -43,12 +43,21 @@ lval* lval_sxpr(void) {
   return v;
 }
 
+lval* lval_qxpr(void) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_QXPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
+}
+
 void lval_del(lval* v) {
   switch (v->type) {
     case LVAL_NUM: break;
     case LVAL_ERR: free(v->err); break;
     case LVAL_SYM: free(v->sym); break;
     case LVAL_SXPR:
+    case LVAL_QXPR:
       for (int i = 0; i < v->count; i++) {
         lval_del(v->cell[i]);
       }
@@ -105,6 +114,7 @@ void lval_print(lval* v) {
     case LVAL_ERR:   printf("Error: %s", v->err); break;
     case LVAL_SYM:   printf("%s", v->sym); break;
     case LVAL_SXPR: lval_expr_print(v, '(', ')'); break;
+    case LVAL_QXPR: lval_expr_print(v, '{', '}'); break;
   }
 }
 
@@ -185,12 +195,15 @@ lval* lval_read(mpc_ast_t* t) {
   if (strstr(t->tag, "symbol")) { return lval_sym(t->contents); }
 
   lval* x = NULL;
-  if (strcmp(t->tag, ">") == 0) { x = lval_sxpr(); } 
+  if (strcmp(t->tag, ">") == 0) { x = lval_sxpr(); }
   if (strstr(t->tag, "sxpr"))  { x = lval_sxpr(); }
+  if (strstr(t->tag, "qxpr")) { x = lval_qxpr(); }
 
   for (int i = 0; i < t->children_num; i++) {
     if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
     if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
+    if (strcmp(t->children[i]->contents, "{") == 0) { continue; }
+    if (strcmp(t->children[i]->contents, "}") == 0) { continue; }
     if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
     x = lval_add(x, lval_read(t->children[i]));
   }
@@ -202,6 +215,7 @@ int main(int argc, char** argv) {
   mpc_parser_t* Number = mpc_new("number");
   mpc_parser_t* Symbol = mpc_new("symbol");
   mpc_parser_t* Sxpr  = mpc_new("sxpr");
+  mpc_parser_t* Qxpr = mpc_new("qxpr");
   mpc_parser_t* Expr   = mpc_new("expr");
   mpc_parser_t* Lispy  = mpc_new("lispy");
 
@@ -210,10 +224,10 @@ int main(int argc, char** argv) {
       number : /-?[0-9]+/ ;                    \
       symbol : '+' | '-' | '*' | '/' | '%';    \
       sxpr  : '(' <expr>* ')' ;                \
-      expr   : <number> | <symbol> | <sxpr> ;  \
+      qxpr  : '{' <expr>* '}' ;                \
+      expr   : <number> | <symbol> | <sxpr> | <qxpr> ;  \
       lispy  : /^/ <expr>* /$/ ;               \
-    ",
-    Number, Symbol, Sxpr, Expr, Lispy);
+    ", Number, Symbol, Sxpr, Qxpr, Expr, Lispy);
 
   puts("Lispy Version 0.0.0.0.1");
   puts("Press Ctrl+c to Exit\n");
@@ -236,7 +250,7 @@ int main(int argc, char** argv) {
     free(input);
   }
 
-  mpc_cleanup(5, Number, Symbol, Sxpr, Expr, Lispy);
+  mpc_cleanup(6, Number, Symbol, Sxpr, Qxpr, Expr, Lispy);
 
   return 0;
 }
