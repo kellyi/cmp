@@ -3,6 +3,18 @@
 #include <editline/readline.h>
 #include "mpc.h"
 
+long _pow(long x, long y) {
+  if (y == 0) {
+    return 1;
+  }
+
+  if (y == 1) {
+    return x;
+  }
+
+  return _pow(x * x, y - 1);
+}
+
 long eval_op(long x, char* op, long y) {
     if (strcmp(op, "+") == 0) {
         return x + y;
@@ -18,6 +30,14 @@ long eval_op(long x, char* op, long y) {
 
     if (strcmp(op, "/") == 0) {
         return x / y;
+    }
+
+    if (strcmp(op, "^") == 0) {
+      return _pow(x, y);
+    }
+
+    if (strcmp(op, "%") == 0) {
+      return x % y;
     }
 
     return 0;
@@ -51,7 +71,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                   \
         number   : /-?[0-9]+/ ;                             \
-        operator : '+' | '-' | '*' | '/' ;                  \
+        operator : '+' | '-' | '*' | '/' | '^' | '%';       \
         expr     : <number> | '(' <operator> <expr>+ ')' ;  \
         lispy    : /^/ <operator> <expr>+ /$/ ;             \
         ", Number, Operator, Expr, Lispy);
