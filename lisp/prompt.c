@@ -3,54 +3,137 @@
 #include <editline/readline.h>
 #include "mpc.h"
 
-long _pow(long x, long y) {
-  if (y == 0) {
-    return 1;
-  }
+typedef struct {
+    int type;
+    long num;
+    int err;
+} lval;
 
-  if (y == 1) {
-    return x;
-  }
+enum {
+    LERR_DIV_ZERO,
+    LERR_BAD_OP,
+    LERR_BAD_NUM,
+    LERR_POW_BELOW_ZERO
+};
 
-  return _pow(x * x, y - 1);
+enum {
+    LVAL_NUM,
+    LVAL_ERR
+};
+
+lval lval_num(long x) {
+    lval v;
+    v.type = LVAL_NUM;
+    v.num = x;
+
+    return v;
 }
 
-long eval_op(long x, char* op, long y) {
+lval lval_err(int x) {
+    lval v;
+    v.type = LVAL_ERR;
+    v.err = x;
+
+    return v;
+}
+
+void lval_print(lval v) {
+    switch (v.type) {
+        case LVAL_NUM:
+            printf("%li\n", v.num);
+            break;
+        case LVAL_ERR:
+            if (v.err == LERR_DIV_ZERO) {
+                printf("Error: division by zero\n");
+            }
+
+            if (v.err == LERR_BAD_OP) {
+                printf("Error: invalid operator\n");
+            }
+
+            if (v.err == LERR_BAD_NUM) {
+                printf("Error: invalid number\n");
+            }
+
+            if (v.err == LERR_POW_BELOW_ZERO) {
+                printf("Error: power below zero\n");
+            }
+
+            break;
+    }
+}
+
+long _pow(long x, long y) {
+    if (y == 0) {
+        return 1;
+    }
+
+    if (y == 1) {
+        return x;
+    }
+
+    return _pow(x * x, y - 1);
+}
+
+lval eval_op(lval x, char* op, lval y) {
+    if (x.type == LVAL_ERR) {
+        return x;
+    }
+
+    if (y.type == LVAL_ERR) {
+        return y;
+    }
+
     if (strcmp(op, "+") == 0) {
-        return x + y;
+        return lval_num(x.num + y.num);
     }
 
     if (strcmp(op, "-") == 0) {
-        return x - y;
+        return lval_num(x.num - y.num);
     }
 
     if (strcmp(op, "*") == 0) {
-        return x * y;
+        return lval_num(x.num * y.num);
     }
 
     if (strcmp(op, "/") == 0) {
-        return x / y;
+        if (y.num == 0) {
+            return lval_err(LERR_DIV_ZERO);
+        }
+
+        return lval_num(x.num / y.num);
     }
 
     if (strcmp(op, "^") == 0) {
-      return _pow(x, y);
+        if (y.num < 0) {
+            return lval_err(LERR_POW_BELOW_ZERO);
+        }
+
+        return lval_num(_pow(x.num, y.num));
     }
 
     if (strcmp(op, "%") == 0) {
-      return x % y;
+        return lval_num(x.num % y.num);
     }
 
-    return 0;
+    return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t* t) {
+lval eval(mpc_ast_t* t) {
     if (strstr(t->tag, "number")) {
-        return atoi(t->contents);
+        errno = 0;
+        long x = strtol(t->contents, NULL, 10);
+
+        if (errno == ERANGE) {
+            return lval_err(LERR_BAD_NUM);
+        }
+
+        return lval_num(x);
     }
 
     char* op = t->children[1]->contents;
 
-    long x = eval(t->children[2]);
+    lval x = eval(t->children[2]);
 
     int i = 3;
 
@@ -85,8 +168,8 @@ int main(int argc, char** argv) {
 
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
-          long result = eval(r.output);
-          printf("%li\n", result);
+          lval result = eval(r.output);
+          lval_print(result);
           mpc_ast_delete(r.output);
         } else {
           mpc_err_print(r.error);
