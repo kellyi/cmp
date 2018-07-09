@@ -1,0 +1,8 @@
+[package]
+name = "tui"
+version = "0.1.0"
+authors = ["Kelly Innes <kinnes@gmail.com>"]
+
+[dependencies]
+cursive = "0.8"
+
