@@ -1,8 +1,13 @@
+//! # minigrep
+//!
+//! `minigrep` is a tutorial project from the Rust programming book.
+
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
+/// Runs `minigrep`
 pub fn run(config: Config) -> Result<(), Box<Error>> {
     let mut f = File::open(config.filename)
         .expect("file not found");
@@ -67,6 +72,22 @@ impl Config {
     }
 }
 
+/// Searches for lines in a file matching an input string, case-sensitive
+///
+/// # Examples
+///
+/// ```
+/// let query = "Hello";
+/// let lines = "\
+/// Hello
+/// hello world
+/// World";
+///
+/// assert_eq!(
+///     vec!["Hello"],
+///     minigrep::search(query, lines),
+/// );
+/// ```
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     contents
         .lines()
@@ -74,44 +95,25 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
         .collect()
 }
 
+/// Searches for lines in a file matching an input string, case-insensitive
+///
+/// # Examples
+///
+/// ```
+/// let query = "Hello";
+/// let lines = "\
+/// Hello
+/// hello world
+/// World";
+///
+/// assert_eq!(
+///     vec!["Hello", "hello world"],
+///     minigrep::search_case_insensitive(query, lines),
+/// );
+/// ```
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     contents
         .lines()
         .filter(|x| x.to_lowercase().contains(&query.to_lowercase()))
         .collect()
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn one_result() {
-        let query = "duct";
-        let contents = "\
-Rust:
-safe, fast, productive.
-Pick three.
-Duct tape.";
-
-        assert_eq!(
-            vec!["safe, fast, productive."],
-            search(query, contents),
-        )
-    }
-
-    #[test]
-    fn case_insensitive() {
-        let query = "rUsT";
-        let contents = "\
-        Rust:
-safe, fast, productive.
-Pick three.
-Trust me.";
-
-        assert_eq!(
-            vec!["Rust:", "Trust me."],
-            search_case_insensitive(query, contents),
-        );
-    }
 }
