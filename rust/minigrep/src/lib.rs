@@ -39,10 +39,21 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
+    pub fn new(mut args: std::env::Args) -> Result<Config, &'static str> {
         match args.len() >= 3 {
             true => {
-                let (query, filename) = (args[1].clone(), args[2].clone());
+                args.next();
+
+                let query = match args.next() {
+                    Some(arg) => arg,
+                    None => return Err("Didn't get a query string"),
+                };
+
+                let filename = match args.next() {
+                    Some(arg) => arg,
+                    None => return Err("Didn't get a file name"),
+                };
+
                 let case_insensitive = env::var("CASE_INSENSITIVE").is_ok();
 
                 Ok(Config {
@@ -59,14 +70,14 @@ impl Config {
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     contents
         .lines()
-        .filter(|&x| x.contains(query))
+        .filter(|x| x.contains(query))
         .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     contents
         .lines()
-        .filter(|&x| x.to_lowercase().contains(&query.to_lowercase()))
+        .filter(|x| x.to_lowercase().contains(&query.to_lowercase()))
         .collect()
 }
 
