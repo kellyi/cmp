@@ -1,5 +1,6 @@
 use std::ops::Deref;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 enum List {
     Cons(i32, Rc<List>),
@@ -7,6 +8,14 @@ enum List {
 }
 
 use List::{Cons, Nil};
+
+#[derive(Debug)]
+enum AnotherList {
+    AnotherCons(Rc<RefCell<i32>>, Rc<AnotherList>),
+    AnotherNil,
+}
+
+use AnotherList::{AnotherCons, AnotherNil};
 
 #[derive(Debug)]
 struct MyBox<T>(T);
@@ -74,6 +83,19 @@ fn main() {
     drop(b);
     println!("reference count for a is {}", Rc::strong_count(&a));
 
-//     let n = 5;
-//     let o = &mut n;
+    //     let n = 5;
+    //     let o = &mut n;
+
+    let new_value = Rc::new(RefCell::new(5));
+
+    let new_a = Rc::new(AnotherCons(Rc::clone(&new_value), Rc::new(AnotherNil)));
+
+    let new_b = AnotherCons(Rc::new(RefCell::new(6)), Rc::clone(&new_a));
+    let new_c = AnotherCons(Rc::new(RefCell::new(10)), Rc::clone(&new_a));
+
+    *new_value.borrow_mut() += 10;
+
+    println!("new_a after {:?}", new_a);
+    println!("new_b after {:?}", new_b);
+    println!("new_c after {:?}", new_c);
 }
