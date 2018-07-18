@@ -1,0 +1,6 @@
+[package]
+name = "advancedlifetimes"
+version = "0.1.0"
+authors = ["Kelly Innes <kinnes@gmail.com>"]
+
+[dependencies]
